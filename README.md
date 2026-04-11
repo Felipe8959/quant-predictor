@@ -78,26 +78,20 @@ quant-predictor/
 
 ---
 
-## Quick Start
+## Início
 
-### 1. Clonar e acessar o projeto
-```python
-# No Databricks
-%cd /Workspace/Users/fe.computador@gmail.com/quant-predictor
-```
-
-### 2. Usar modelo em produção
+### Usar modelo em produção
 ```python
 import pickle
 import pandas as pd
 
-# Carregar modelo
+# carrega modelo
 model_path = 'models/xgboost_atr_target.pkl'
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
 # Fazer predição
-features = pd.DataFrame([...])  # Suas 52 features
+features = pd.DataFrame([...])  # features
 probability = model.predict_proba(features)[:, 1]
 prediction = model.predict(features)
 
@@ -105,11 +99,11 @@ print(f"Probabilidade TP: {probability[0]:.2%}")
 print(f"Predição: {'TP' if prediction[0] == 1 else 'SL'}")
 ```
 
-### 3. Verificar metadados do modelo
+### Verificar metadados do modelo
 ```python
 import json
 
-# Carregar metadados
+# metadados
 with open('models/xgboost_atr_target_metadata.json', 'r') as f:
     metadata = json.load(f)
 
@@ -171,16 +165,6 @@ print(f"Features: {metadata['n_features']}")
 
 ---
 
-## Tecnologias
-
-* **Data:** Delta Lake, PySpark, SQL
-* **ML:** XGBoost, scikit-learn, pandas, numpy
-* **Visualização:** Matplotlib, Seaborn
-* **Compute:** Databricks Serverless (AWS)
-* **Formato:** Jupyter Notebooks (.ipynb)
-
----
-
 ## Documentação Completa
 
 * **[Arquitetura](docs/arquitetura.md)** - Estrutura do projeto e pipeline de ML
@@ -217,7 +201,6 @@ prediction = (probability >= threshold).astype(int)
 
 ### Limitações e Considerações
 
-⚠️ **Importante:**
 * Modelo treinou com horizonte de 24h - não use para day trading
 * Precisão de 50.4% significa ~50% de falsos positivos
 * Sempre use stop loss e take profit conforme ATR
