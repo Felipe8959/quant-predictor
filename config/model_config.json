@@ -1,0 +1,43 @@
+{
+  "model": {
+    "type": "XGBClassifier",
+    "version": "1.0.0",
+    "production_path": "models/production/",
+    "archive_path": "models/archive/"
+  },
+  "hyperparameters": {
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "n_estimators": 200,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "objective": "binary:logistic",
+    "eval_metric": "auc",
+    "early_stopping_rounds": 20,
+    "random_state": 42
+  },
+  "training": {
+    "test_size": 0.2,
+    "shuffle": false,
+    "scale_pos_weight_auto": true
+  },
+  "features": {
+    "timeframes": [
+      "1h",
+      "15m",
+      "4h"
+    ],
+    "categories": [
+      "price_features",
+      "volume_features",
+      "technical_indicators",
+      "correlation_features"
+    ]
+  },
+  "target": {
+    "type": "adaptive_atr",
+    "tp_multiplier": 2.0,
+    "sl_multiplier": 1.0,
+    "horizon_hours": 24
+  }
+}
