@@ -19,17 +19,14 @@ Sistema de predição de movimentos de criptomoedas usando Machine Learning, com
 ```
 quant-predictor/
 ├── notebooks/                      # Notebooks de análise e desenvolvimento
-│   ├── 05_predictor.ipynb          # Modelo rodando em produção
-│   └── old/
-│       └── modelagem_xgboost.ipynb # Notebook de treinamento (arquivado)
+│   ├── 05_predictor.ipynb          # Faz predições
+│   └── old/                        # Arquivos antigos (obsoleto)
 │
 ├── models/                         # Modelos treinados e metadados
-│   ├── xgboost_atr_target.pkl      # Modelo em formato Pickle
-│   ├── xgboost_atr_target.json     # Modelo em formato JSON XGBoost
+│   ├── xgboost_atr_target.pkl      # Modelo pickle
+│   ├── xgboost_atr_target.json     # Modelo JSON
 │   ├── xgboost_atr_target_metadata.json  # Metadados completos do modelo
 │   └── xgboost_atr_target_feature_importance.csv  # Importâncias das features
-│
-├── scripts/                        # Scripts Python reutilizáveis
 │
 ├── config/                         # Arquivos de configuração
 │   ├── model_config.json           # Hiperparâmetros e configurações do modelo
