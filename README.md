@@ -6,11 +6,11 @@ Sistema de predição de movimentos de criptomoedas usando Machine Learning, com
 
 | Métrica | Valor | Status |
 |---------|-------|--------|
-| **AUC-ROC** | 0.7331 | ✅ Bom |
-| **F1-Score** | 0.5570 | ✅ Moderado |
-| **MCC** | 0.3025 | ✅ Positivo |
-| **Precisão (TP)** | 50.4% | ⚠️ Moderado |
-| **Recall (TP)** | 62.3% | ✅ Bom |
+| **AUC-ROC** | 0.7331 | Bom |
+| **F1-Score** | 0.5570 | Moderado |
+| **MCC** | 0.3025 | Positivo |
+| **Precisão (TP)** | 50.4% | Moderado |
+| **Recall (TP)** | 62.3% | Bom |
 
 ---
 
