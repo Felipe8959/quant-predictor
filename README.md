@@ -172,6 +172,48 @@ print(f"Features: {metadata['n_features']}")
 * Breakouts de níveis técnicos são preditivos
 * VWAP distance (#19) também é relevante
 
+#### 6. Visualizações
+
+##### Equity Curves - Evolução do Capital
+
+![Equity Curves](docs/images/equity_curves.png "equity_curves.png")
+
+**Observações:**
+* Crescimento consistente de 2021 a 2025
+* Threshold 0.50 (vermelho) apresentou o maior crescimento final
+* Thresholds mais conservadores tiveram crescimento mais suave mas steady
+* Período de maior crescimento: 2021-2022 (bull market)
+* Estabilização após 2023 com crescimento linear moderado
+
+##### Drawdown Analysis
+![Drawdown](docs/images/drawdown.png "drawdown.png")
+
+**Observações:**
+* **Max Drawdown:** -2.17% em 22/06/2021
+* Drawdowns geralmente de curta duração (recuperação rápida)
+* Drawdown controlado mesmo durante bear market 2022-2023
+* Perfil de risco muito favorável considerando o retorno obtido
+
+### Distribuição de Retornos
+
+![Returns Distribution](docs/images/returns_distribution.png "returns_distribution.png")
+
+**Observações:**
+* Distribuição aproximadamente normal centrada em valores positivos
+* Cauda direita (ganhos) mais longa que cauda esquerda (perdas)
+* Presença de outliers positivos (trades excepcionais de +20-30%)
+* Stop Loss efetivo em limitar perdas extremas
+
+### Comparação de Métricas
+
+![Metrics Comparison](docs/images/metrics_comparison.png "metrics_comparison.png")
+
+**Insights:**
+* **Win Rate:** Aumenta consistentemente com threshold mais alto
+* **Sharpe Ratio:** Melhora com thresholds mais conservadores
+* **Retorno Total:** Inversamente proporcional ao threshold
+* Todos os thresholds superaram significativamente o Buy & Hold
+
 ### Próximos Passos
 - [x] **Threshold optimization** - Validado threshold 0.55 como superior
 - [ ] **Otimização de hiperparâmetros** (Optuna/GridSearch)
