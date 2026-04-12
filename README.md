@@ -2,15 +2,18 @@
 
 Sistema de predição de movimentos de criptomoedas usando Machine Learning, com foco em classificação binária (Take Profit vs Stop Loss) baseada em targets adaptativos calculados por ATR.
 
-## Performance Atual
+## Performance Atual (Threshold 0.55)
 
 | Métrica | Valor | Status |
 |---------|-------|--------|
-| **AUC-ROC** | 0.7331 | Bom |
-| **F1-Score** | 0.5570 | Moderado |
-| **MCC** | 0.3025 | Positivo |
-| **Precisão (TP)** | 50.4% | Moderado |
-| **Recall (TP)** | 62.3% | Bom |
+| **AUC-ROC** | 0.7730 | Bom |
+| **Acurácia** | 72.18% | Bom |
+| **Precisão (TP)** | 57.04% | Bom |
+| **Recall (TP)** | 57.02% | Moderado |
+| **F1-Score** | 0.5703 | Moderado |
+| **MCC** | 0.3647 | Positivo |
+
+**Por que threshold 0.55?** Oferece melhor precisão (+6.17 p.p. vs 0.50) com trade-off aceitável no recall, reduzindo falsos positivos em 36.9%.
 
 ---
 
@@ -34,7 +37,7 @@ quant-predictor/
 │
 ├── docs/                           # Documentação detalhada
 │   ├── arquitetura.md              # Arquitetura e pipeline de ML
-│   ├── features.md                 # Documentação das 52 features
+│   ├── features.md                 # Documentação das ~92 features
 │   └── resultados.md               # Resultados e histórico de modelos
 │
 └── README.md                       
@@ -52,11 +55,13 @@ quant-predictor/
 * **Período:** 5 anos de dados históricos
 
 ### Feature Engineering
-* **52 features** divididas em 4 categorias:
-  - Price features (returns, volatility, z-scores, Bollinger Bands)
-  - Volume features (volume changes, ratios, z-scores)
-  - Technical indicators (RSI, ATR, momentum)
-  - Correlation features (beta com BTC, relative strength, ratios)
+* **~92 features** (52 originais + 40 do Lote 1) divididas em 6 categorias:
+  - Price features (returns, volatility, z-scores, Bollinger Bands, VWAP, support/resistance)
+  - Volume features (volume changes, ratios, z-scores, OBV)
+  - Technical indicators (RSI, ATR, momentum, ROC, ADX, volatility ratio)
+  - Price action (body/shadow ratios - candle psychology)
+  - Temporal features (hour of day - sin/cos encoding)
+  - Correlation features (beta com BTC/ETH, relative strength, ratios, market breadth)
 * **Multi-timeframe:** 1h (operacional), 15m (tático), 4h (estratégico)
 * **Target adaptativo:** Baseado em ATR (2x TP, 1x SL, horizonte 24h)
 
@@ -65,12 +70,12 @@ quant-predictor/
 * **Balanceamento:** scale_pos_weight (class weights automático)
 * **Validação:** Split temporal walk-forward (sem data leakage)
 * **Otimização:** Early stopping + AUC-ROC
-* **Features mais importantes:** `log_return_4h`, `momentum_1h`, `log_return_1h`
+* **Features mais importantes:** `log_return_4h`, `roc_10_1h`, `momentum_1h`, `momentum_4h`, `body_range_ratio_4h`
 
 ### Avaliação
-* **Métricas principais:** AUC-ROC, F1-Score, MCC
-* **Test set:** 20% mais recente (61,077 registros)
-* **Threshold:** 0.5 (padrão de classificação)
+* **Métricas principais:** AUC-ROC, Acurácia, Precisão, Recall, F1-Score, MCC
+* **Test set:** 20% mais recente (16,426 registros após limpeza)
+* **Threshold recomendado:** 0.55 (otimizado para qualidade dos sinais)
 * **Monitoramento:** Feature importance + confusion matrix
 
 ---
@@ -82,25 +87,29 @@ quant-predictor/
 import pickle
 import pandas as pd
 
-# carrega modelo
+# Carregar modelo
 model_path = 'models/xgboost_atr_target.pkl'
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
 # Fazer predição
-features = pd.DataFrame([...])  # features
+features = pd.DataFrame([...])  # suas features
 probability = model.predict_proba(features)[:, 1]
-prediction = model.predict(features)
+
+# Aplicar threshold recomendado
+threshold = 0.55
+prediction = (probability >= threshold).astype(int)
 
 print(f"Probabilidade TP: {probability[0]:.2%}")
 print(f"Predição: {'TP' if prediction[0] == 1 else 'SL'}")
+print(f"Confiança: {'Alta' if abs(probability[0] - 0.5) > 0.15 else 'Moderada'}")
 ```
 
 ### Verificar metadados do modelo
 ```python
 import json
 
-# metadados
+# Carregar metadados
 with open('models/xgboost_atr_target_metadata.json', 'r') as f:
     metadata = json.load(f)
 
@@ -114,49 +123,63 @@ print(f"Features: {metadata['n_features']}")
 ## Resultados e Insights
 
 ### Principais Conquistas
-* **AUC-ROC 0.733:** 47% melhor que baseline aleatório (0.5)
-* **MCC 0.303:** Correlação positiva entre predições e realidade
-* **Recall 62.3%:** Boa capacidade de identificar oportunidades de TP
+* **AUC-ROC 0.773:** 55% melhor que baseline aleatório (0.5)
+* **Acurácia 72.2%:** Modelo acerta mais de 7 em 10 predições
+* **Precisão 57.0%:** Dos sinais de TP, 57% estão corretos
 * **Multi-timeframe efetivo:** Features de 1h, 15m e 4h contribuem
-* **Modelo balanceado:** Trade-off adequado entre precisão e recall
+* **~92 features:** Lote 1 adicionou 40 features com alta relevância preditiva
+* **Threshold otimizado:** 0.55 oferece melhor balanço qualidade vs quantidade
 
-### Feature Importance (Top 5)
+### Feature Importance (Top 10)
 
-1. **log_return_4h** (13.8%) - Retorno logarítmico 4h é o fator mais crítico
-2. **momentum_1h** (9.8%) - Momentum de curto prazo (velocidade do movimento)
-3. **log_return_1h** (5.4%) - Retorno logarítmico operacional
-4. **z_score_close_1h** (4.2%) - Normalização do preço 1h (desvio da média)
-5. **momentum_4h** (3.9%) - Momentum estratégico (tendência de médio prazo)
+| Feature                | Importância | Lote         | Descrição                                              |
+|------------------------|-------------|--------------|--------------------------------------------------------|
+| log_return_4h          | 6.0%        | Lote inicial | Retorno logarítmico 4h continua sendo o fator mais crítico |
+| roc_10_1h              | 5.2%        | Lote 1       | Rate of Change 10 períodos (novo no Lote 1)           |
+| momentum_1h            | 4.8%        | Lote inicial | Momentum de curto prazo (velocidade do movimento)      |
+| momentum_4h            | 3.8%        | Lote inicial | Momentum estratégico (tendência de médio prazo)        |
+| body_range_ratio_4h    | 3.3%        | Lote 1       | Força do movimento em 4h (candle psychology)           |
+| upper_shadow_ratio_4h  | 3.0%        | Lote 1       | Rejeição na máxima 4h (pressão vendedora)              |
+| log_return_1h          | 2.6%        | Lote inicial | Retorno logarítmico operacional                        |
+| z_score_close_1h       | 2.4%        | Lote inicial | Normalização do preço 1h (desvio da média)             |
+| bb_position_4h         | 2.2%        | Lote inicial | Posição nas Bollinger Bands 4h                         |
+| roc_5_1h               | 2.2%        | Lote 1       | Rate of Change 5 períodos (curto prazo)                |
 
 ### Insights Principais
 
-#### 1. Timeframe 4h é Extremamente Importante
-* Feature mais relevante: `log_return_4h` (13.8%)
-* Captura tendências de médio prazo
-* Reduz ruído e falsos sinais
+#### 1. ROC e Momentum Dominam
+* ROC (Rate of Change) aparece 5 vezes no top 30
+* `roc_10_1h` é a 2ª feature mais importante
+* Velocidade de mudança em múltiplas janelas é altamente preditiva
 
-#### 2. Momentum é Crítico
-* `momentum_1h` e `momentum_4h` no top 5
-* Velocidade de mudança do preço é preditiva
-* Multi-timeframe captura diferentes horizontes
+#### 2. Price Action/Candle Psychology Funciona
+* `body_range_ratio_4h` (#5) e `upper_shadow_ratio_4h` (#6) no top 10
+* Anatomia dos candles captura psicologia do mercado
+* Rejeições (shadows) indicam pressão compradora/vendedora
 
-#### 3. Bollinger Bands Consistente
-* `bb_position_1h`, `bb_position_15m`, `bb_position_4h` no top 10
-* Posição relativa nas bandas é importante
-* Funciona em todos os timeframes
+#### 3. Timeframe 4h Continua Supremo
+* `log_return_4h` continua sendo a feature #1
+* Features de 4h capturam tendências de médio prazo
+* Menor ruído que 1h e 15m
 
-#### 4. Correlação com BTC é Relevante
-* `beta_btc` aparece no ranking de importância
-* Mercado de criptomoedas segue Bitcoin
-* Força relativa também contribui
+#### 4. Padrões Temporais São Relevantes
+* `hour_cos_1h` (#12) e `hour_sin_1h` (#15) no top 15
+* Horários de maior liquidez (NY, Ásia, Europa) impactam
+* Codificação cíclica preserva natureza circular do tempo
 
-### Próximos Passos (Roadmap)
+#### 5. Support/Resistance Técnico Funciona
+* `support_break_1h` (#16), `resistance_break_1h` (#18)
+* Breakouts de níveis técnicos são preditivos
+* VWAP distance (#19) também é relevante
+
+### Próximos Passos
+- [x] **Threshold optimization** - Validado threshold 0.55 como superior
 - [ ] **Otimização de hiperparâmetros** (Optuna/GridSearch)
 - [ ] **Ensemble de modelos** (XGBoost + LightGBM + CatBoost)
 - [ ] **Walk-forward validation** mais robusta (múltiplos folds)
-- [ ] **Feature engineering:** Sentiment (funding rate, OI, long/short ratio)
-- [ ] **Feature engineering:** Order book (spread, depth, imbalance)
-- [ ] **Threshold optimization** por curva Precision-Recall
+- [ ] **Lote 2:** Sentiment (funding rate, OI, long/short ratio)
+- [ ] **Lote 2:** Order book (spread, depth, imbalance)
+- [ ] **Lote 2:** On-chain metrics (active addresses, exchange flows, MVRV)
 - [ ] **Integração:** API de inferência em produção
 - [ ] **Monitoring:** Drift detection + retraining automático
 
@@ -165,7 +188,7 @@ print(f"Features: {metadata['n_features']}")
 ## Documentação Completa
 
 * **[Arquitetura](docs/arquitetura.md)** - Estrutura do projeto e pipeline de ML
-* **[Features](docs/features.md)** - Documentação das 52 features
+* **[Features](docs/features.md)** - Documentação das ~92 features
 * **[Resultados](docs/resultados.md)** - Performance e histórico de modelos
 * **[Configurações](config/)** - Parâmetros de modelo e trading
 
@@ -173,33 +196,90 @@ print(f"Features: {metadata['n_features']}")
 
 ## Uso do Modelo
 
+### Threshold: Qualidade vs Quantidade
+
+O modelo suporta thresholds customizados. **Recomendamos 0.55** como padrão:
+
+| Threshold | Precisão | Recall | Quando Usar |
+|-----------|----------|--------|-------------|
+| **0.55** | 57.04% | 57.02% | **Recomendado** - Melhor balanço qualidade/quantidade |
+| 0.50 | 50.87% | 70.51% | Perfil agressivo - Quer capturar mais oportunidades |
+| 0.60 | ~65%* | ~45%* | Perfil conservador - Prioriza alta precisão |
+
+*Estimado baseado na curva precision-recall
+
 ### Interpretação das Predições
 
-#### Probabilidades
-* **> 0.6:** Alta confiança de TP - sinal forte de entrada
-* **0.5 - 0.6:** Confiança moderada de TP - sinal válido mas cautela
-* **0.4 - 0.5:** Confiança moderada de SL - evitar entrada
-* **< 0.4:** Alta confiança de SL - sinal forte contra entrada
+#### Com Threshold 0.55 (Recomendado)
+* **≥ 0.55:** Sinal de TP - Probabilidade 57% de acerto
+* **< 0.55:** Sinal de SL - Evitar entrada
 
-#### Threshold Customizado
+#### Níveis de Confiança
+* **> 0.65:** Alta confiança de TP - sinal forte de entrada
+* **0.55 - 0.65:** Confiança moderada de TP - sinal válido
+* **0.45 - 0.55:** Zona cinza - evitar (indecisão)
+* **< 0.45:** Alta confiança de SL - sinal forte contra entrada
+
+### Exemplo de Uso com Threshold
+
 ```python
-# Threshold padrão (balanceado)
-threshold = 0.5
+# Fazer predição
+probability = model.predict_proba(features)[:, 1]
 
-# Threshold conservador (mais precisão, menos sinais)
-threshold = 0.6  
-
-# Threshold agressivo (mais sinais, menos precisão)
-threshold = 0.4
-
-# Aplicar threshold
+# Threshold recomendado
+threshold = 0.55
 prediction = (probability >= threshold).astype(int)
+
+# Classificar confiança
+if probability[0] >= 0.65:
+    confidence = "Alta"
+elif probability[0] >= 0.55:
+    confidence = "Moderada"
+elif probability[0] >= 0.45:
+    confidence = "Baixa - Zona cinza"
+else:
+    confidence = "SL esperado"
+
+print(f"Probabilidade: {probability[0]:.2%}")
+print(f"Predição: {'TP' if prediction[0] == 1 else 'SL'}")
+print(f"Confiança: {confidence}")
+
+# Exemplo de saída:
+# Probabilidade: 62.34%
+# Predição: TP
+# Confiança: Moderada
 ```
+
+### Por que Threshold 0.55?
+
+**Vantagens:**
+* Precisão 6.17 p.p. melhor que 0.50 (50.87% → 57.04%)
+* Reduz falsos positivos em 36.9%
+* Acurácia geral 3.77 p.p. melhor (68.41% → 72.18%)
+* Win rate mais realista e confiável
+
+**Trade-offs:**
+* ⚠️ Recall 13.49 p.p. menor (70.51% → 57.02%)
+* ⚠️ Perde ~13% das oportunidades reais
+* ⚠️ 27.9% menos sinais emitidos
+
+**Use threshold 0.50 se:**
+* Tem capital amplo para diversificar
+* Prefere quantidade sobre qualidade
+* Custos de transação são baixos
+* Perfil agressivo / risk-seeking
+
+**Use threshold 0.60+ se:**
+* Capital muito limitado
+* Custos de transação altos
+* Perfil extremamente conservador
+* Só quer sinais de altíssima confiança
 
 ### Limitações e Considerações
 
 * Modelo treinou com horizonte de 24h - não use para day trading
-* Precisão de 50.4% significa ~50% de falsos positivos
+* Precisão de 57% com threshold 0.55 (43% de falsos positivos)
 * Sempre use stop loss e take profit conforme ATR
 * Backtest em produção antes de usar dinheiro real
 * Modelo pode degradar com mudanças de regime de mercado
+* Threshold pode ser ajustado conforme seu perfil de risco
